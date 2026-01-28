@@ -124,7 +124,8 @@ class GenGdbInfo(object):
                     if self.__CompareList(newStack, oldStack):
                         searchFlag = True
                         cfg.set(section, 'TotalSeedsNum',
-                                int(cfg.get(section, 'TotalSeedsNum')) + 1)
+                                str(int(cfg.get(section, 'TotalSeedsNum'))
+                                    + 1))
                         break
         if not searchFlag:
             cfg.add_section(seedName)
@@ -132,7 +133,7 @@ class GenGdbInfo(object):
                 cfg.set(seedName, 'stackinfo', InfoList[-1])
             else:
                 cfg.set(seedName, 'stackinfo', InfoList[0])
-            cfg.set(seedName, 'TotalSeedsNum', 1)
+            cfg.set(seedName, 'TotalSeedsNum', '1')
         self.__infoList = []
         for section in cfg.sections():
             self.__infoList.append((time.asctime(
