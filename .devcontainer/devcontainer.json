@@ -1,0 +1,25 @@
+{
+  "name": "HBFA-FL EDK2 Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "hbfa-fl-dev",
+  "workspaceFolder": "/home/hbfafl/workspace",
+  "initializeCommand": "echo \"HOST_UID=$(id -u)\" > ${localWorkspaceFolder}/.devcontainer/.env && echo \"HOST_GID=$(id -g)\" >> ${localWorkspaceFolder}/.devcontainer/.env",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "twxs.cmake",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteUser": "hbfafl",
+  "postCreateCommand": "git submodule update --init --recursive && chmod +x HBFA/UefiHostTestTools/Run*.py HBFA/UefiHostTestTools/Report/ReportMain.py HBFA/UefiHostTestTools/Report/GenCodeCoverage.py 2>/dev/null || true && (grep -q 'source ~/init_hbfa_env.sh' ~/.bashrc || echo 'source ~/init_hbfa_env.sh' >> ~/.bashrc)",
+  "postStartCommand": "bash -lc 'source ~/init_hbfa_env.sh && echo \"HBFA-FL environment initialized.\"'"
+}

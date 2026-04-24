@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  hbfa-fl-dev:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: hbfa-fl:ubuntu22.04
+    container_name: hbfa-fl-container
+    
+    # Keep container running
+    stdin_open: true
+    tty: true
+    
+    # Mount the workspace
+    volumes:
+      - ..:/home/hbfafl/workspace:cached
+    
+    # Mount /tmp as tmpfs (RAM-backed) for fast fuzzing I/O
+    tmpfs:
+      - /tmp:exec,size=16G
+    
+    # Pass host UID/GID for file permissions (from .env file)
+    environment:
+      - HOST_UID=${HOST_UID:-1000}
+      - HOST_GID=${HOST_GID:-1000}
+    
+    # Use the entrypoint from Dockerfile
+    entrypoint: /usr/local/bin/entrypoint.sh
+    command: sleep infinity
+    
+    # Required for QEMU networking (TAP interfaces)
+    privileged: true
+    
+    # Required for network device creation
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    
+    # Allow access to /dev/net/tun for TAP devices
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    
+    # Host networking mode - allows TAP/bridge setup
+    # Comment this out if you prefer isolated networking
+    network_mode: host
+    
+    # Optional: increase shared memory for AFL++
+    shm_size: '2gb'

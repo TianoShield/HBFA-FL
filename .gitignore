@@ -107,5 +107,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Other
-Dockerfile
+# ignore build artifacts
+Build/
+
+#ignore AFL compiler artifacts
+afl-2.52b/
