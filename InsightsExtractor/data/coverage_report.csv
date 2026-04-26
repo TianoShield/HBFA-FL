@@ -1,0 +1,21 @@
+harness,component,lines_total,lines_hit,line_coverage_pct,functions_total,functions_hit,function_coverage_pct
+TestBmpSupportLib,MdeModulePkg/Library/BaseBmpSupportLib,219,144,65.75,2,1,50.0
+TestCapsulePei,MdeModulePkg/Universal/CapsulePei/Common,402,72,17.91,10,4,40.0
+TestFileName,MdeModulePkg/Universal/Disk/UdfDxe,1315,89,6.77,56,4,7.14
+TestFmpAuthenticationLibPkcs7,SecurityPkg/Library/FmpAuthenticationLibPkcs7,53,20,37.74,2,1,50.0
+TestFmpAuthenticationLibRsa2048Sha256,SecurityPkg/Library/FmpAuthenticationLibRsa2048Sha256,134,21,15.67,2,1,50.0
+TestPartition,MdeModulePkg/Universal/Disk/PartitionDxe,1000,152,15.2,38,5,13.16
+TestPeiUsb,MdeModulePkg/Bus/Usb/UsbBusPei,560,83,14.82,27,3,11.11
+TestTcg2MeasureGptTable,SecurityPkg/Library/DxeTpm2MeasureBootLib,511,116,22.7,16,4,25.0
+TestTcg2MeasureGptTable,MdeModulePkg/Universal/Disk/PartitionDxe,1000,0,0.0,38,0,0.0
+TestTcg2MeasureGptTable,ALL (SecurityPkg/Library/DxeTpm2MeasureBootLib;MdeModulePkg/Universal/Disk/PartitionDxe),1511,116,7.68,54,4,7.41
+TestTcg2MeasurePeImage,SecurityPkg/Library/DxeTpm2MeasureBootLib,511,70,13.7,16,2,12.5
+TestTcg2MeasurePeImage,MdePkg/Library/BasePeCoffLib,852,0,0.0,18,0,0.0
+TestTcg2MeasurePeImage,ALL (SecurityPkg/Library/DxeTpm2MeasureBootLib;MdePkg/Library/BasePeCoffLib),1363,70,5.14,34,2,5.88
+TestTpm2CommandLib,SecurityPkg/Library/Tpm2CommandLib,2539,68,2.68,62,3,4.84
+TestUdf,MdeModulePkg/Universal/Disk/UdfDxe,1315,1068,81.22,56,43,76.79
+TestVariableSmm,MdeModulePkg/Universal/Variable/RuntimeDxe,3508,198,5.64,175,10,5.71
+TestVirtio10Blk,OvmfPkg/Library/VirtioLib,109,0,0.0,8,0,0.0
+TestVirtioBlk,OvmfPkg/Library/VirtioLib,109,0,0.0,8,0,0.0
+TestVirtioBlkReadWrite,OvmfPkg/Library/VirtioLib,109,0,0.0,8,0,0.0
+TestVirtioPciDevice,OvmfPkg/Library/VirtioLib,109,0,0.0,8,0,0.0

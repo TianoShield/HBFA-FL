@@ -1,0 +1,17 @@
+harness,edk2_source,crashes_total,crashes_unique,error_types
+TestBmpSupportLib,MdeModulePkg/Library/BaseBmpSupportLib,0,0,
+TestCapsulePei,MdeModulePkg/Universal/CapsulePei/Common,0,0,
+TestFileName,MdeModulePkg/Universal/Disk/UdfDxe,0,0,
+TestFmpAuthenticationLibPkcs7,SecurityPkg/Library/FmpAuthenticationLibPkcs7,0,0,
+TestFmpAuthenticationLibRsa2048Sha256,SecurityPkg/Library/FmpAuthenticationLibRsa2048Sha256,0,0,
+TestPartition,MdeModulePkg/Universal/Disk/PartitionDxe,0,0,
+TestPeiUsb,MdeModulePkg/Bus/Usb/UsbBusPei,19,1,no-output
+TestTcg2MeasureGptTable,SecurityPkg/Library/DxeTpm2MeasureBootLib,0,0,
+TestTcg2MeasurePeImage,SecurityPkg/Library/DxeTpm2MeasureBootLib,0,0,
+TestTpm2CommandLib,SecurityPkg/Library/Tpm2CommandLib,0,0,
+TestUdf,MdeModulePkg/Universal/Disk/UdfDxe,0,0,
+TestVariableSmm,MdeModulePkg/Universal/Variable/RuntimeDxe,32,1,no-output
+TestVirtio10Blk,OvmfPkg/Library/VirtioLib,0,0,
+TestVirtioBlk,OvmfPkg/Library/VirtioLib,0,0,
+TestVirtioBlkReadWrite,OvmfPkg/Library/VirtioLib,0,0,
+TestVirtioPciDevice,OvmfPkg/Library/VirtioLib,0,0,
