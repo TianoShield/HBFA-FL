@@ -14,7 +14,14 @@
 
   GCC:*_*_X64_CC_FLAGS == -m64 -g -fshort-wchar -fno-strict-aliasing -Wall -malign-double -idirafter/usr/include -c -include $(DEST_DIR_DEBUG)/AutoGen.h
   GCC:*_GCC49_X64_CC_FLAGS = "-DEFIAPI=__attribute__((ms_abi))"
-  GCC:*_GCC5_X64_CC_FLAGS = "-DEFIAPI=__attribute__((ms_abi))" -DUSING_LTO -Os
+  # NOTE: GCC5 intentionally does NOT define EFIAPI=ms_abi. Combined with
+  # -DNO_MSABI_VA_FUNCS=TRUE (which makes ProcessorBind.h use SysV va_list)
+  # an ms_abi caller passing varargs to a SysV-va_arg callee corrupts the
+  # va_list and crashes any function that takes ... (e.g.
+  # gBS->InstallMultipleProtocolInterfaces). Leave EFIAPI empty so the
+  # whole binary stays SysV-consistent (same as the AFL/LIBFUZZER/CLANG8
+  # profiles).
+  GCC:*_GCC5_X64_CC_FLAGS = -DUSING_LTO -Os
   GCC:*_*_X64_PP_FLAGS == -m64 -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
   GCC:*_*_X64_ASM_FLAGS == -m64 -c -x assembler -imacros $(DEST_DIR_DEBUG)/AutoGen.h
 
@@ -103,7 +110,10 @@
   GCC:*_GCC5_X64_DLINK_FLAGS == -o $(BIN_DIR)/$(BASE_NAME) -m64 -L/usr/X11R6/lib
   GCC:*_*_X64_CC_FLAGS == -m64 -g -fshort-wchar -fno-strict-aliasing -Wall -malign-double -idirafter/usr/include -c -include $(DEST_DIR_DEBUG)/AutoGen.h
   GCC:*_GCC49_X64_CC_FLAGS = "-DEFIAPI=__attribute__((ms_abi))"
-  GCC:*_GCC5_X64_CC_FLAGS = "-DEFIAPI=__attribute__((ms_abi))" -DUSING_LTO -Os
+  # NOTE: see the matching block above — GCC5 intentionally does NOT
+  # define EFIAPI=ms_abi (would mismatch the SysV va_list selected by
+  # -DNO_MSABI_VA_FUNCS=TRUE and SIGSEGV on the first VA_ARG).
+  GCC:*_GCC5_X64_CC_FLAGS = -DUSING_LTO -Os
   GCC:*_*_X64_PP_FLAGS == -m64 -E -x assembler-with-cpp -include $(DEST_DIR_DEBUG)/AutoGen.h
   GCC:*_*_X64_ASM_FLAGS == -m64 -c -x assembler -imacros $(DEST_DIR_DEBUG)/AutoGen.h
   GCC:*_*_X64_DLINK2_FLAGS == -Wno-error -no-pie
