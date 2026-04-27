@@ -176,10 +176,10 @@ _SEED_MAP = {
     "TestTcg2MeasureGptTable":               "Gpt/Raw",
     "TestTcg2MeasurePeImage":                "Capsule",
     "TestValidateTdxCfv":                    "TdxHob/Raw",
-    "TestVirtioPciDevice":                   "Blk/Raw",
-    "TestVirtio10Blk":                       "Blk/Raw",
-    "TestVirtioBlk":                         "Blk/Raw",
-    "TestVirtioBlkReadWrite":                "Blk/Raw",
+    "TestVirtioPciDevice":                   "Blk",
+    "TestVirtio10Blk":                       "Blk",
+    "TestVirtioBlk":                         "Blk",
+    "TestVirtioBlkReadWrite":                "Blk",
 }
 
 

@@ -218,6 +218,85 @@ def _tail_log(path: Path, n: int) -> list:
     return lines[-n:]
 
 
+_FUZZER_STAT_KEYS = (
+    "start_time", "last_update", "run_time",
+    "execs_done", "execs_per_sec", "paths_total",
+    "unique_crashes", "unique_hangs", "last_path", "last_crash",
+)
+
+
+def _read_fuzzer_stats(path: Path) -> dict:
+    """Parse AFL's ``fuzzer_stats`` file into a dict (numeric values floats)."""
+    out = {}
+    try:
+        for line in path.read_text(errors="replace").splitlines():
+            if ":" not in line:
+                continue
+            k, _, v = line.partition(":")
+            k = k.strip()
+            v = v.strip()
+            if k in _FUZZER_STAT_KEYS:
+                try:
+                    out[k] = float(v)
+                except ValueError:
+                    out[k] = v
+    except OSError:
+        pass
+    return out
+
+
+def _aggregate_afl_stats(harnesses: dict) -> dict:
+    """Sum/aggregate fuzzer_stats across every main+secondary instance.
+
+    Returns a dict with totals across all live AFL output dirs:
+      run_time_max  (s)   longest-running instance — closest to AFL's own clock
+      execs_done    (sum) total executions
+      execs_per_sec (sum) aggregate throughput
+      paths_total   (sum) sum of paths across instances (overcounts shared finds)
+      unique_crashes (sum)
+      unique_hangs   (sum)
+    """
+    rt_max = 0.0
+    execs = 0.0
+    eps = 0.0
+    paths = 0.0
+    crashes = 0.0
+    hangs = 0.0
+    n = 0
+    for info in harnesses.values():
+        out = info.get("afl_output")
+        if not out or not out.is_dir():
+            continue
+        for sub in out.iterdir():
+            stats = _read_fuzzer_stats(sub / "fuzzer_stats")
+            if not stats:
+                continue
+            n += 1
+            # AFL 2.52b fuzzer_stats has no `run_time` key; derive from
+            # last_update - start_time (AFL's own clock, not host wall-clock).
+            rt = stats.get("run_time", 0.0) or 0.0
+            if not rt:
+                st = stats.get("start_time", 0.0) or 0.0
+                lu = stats.get("last_update", 0.0) or 0.0
+                if st and lu and lu >= st:
+                    rt = lu - st
+            rt_max = max(rt_max, rt)
+            execs += stats.get("execs_done", 0.0) or 0.0
+            eps += stats.get("execs_per_sec", 0.0) or 0.0
+            paths += stats.get("paths_total", 0.0) or 0.0
+            crashes += stats.get("unique_crashes", 0.0) or 0.0
+            hangs += stats.get("unique_hangs", 0.0) or 0.0
+    return {
+        "instances": n,
+        "run_time_max": rt_max,
+        "execs_done": execs,
+        "execs_per_sec": eps,
+        "paths_total": paths,
+        "unique_crashes": crashes,
+        "unique_hangs": hangs,
+    }
+
+
 class FuzzCampaign:
     """Launch AFL master + secondaries for each harness, distributed over cores."""
 
@@ -225,9 +304,10 @@ class FuzzCampaign:
         self.harnesses = harnesses
         self.total_cores = max(1, total_cores)
         self.timeout_ms = timeout_ms
-        self.processes = []   # list of (name, tag, log_path, Popen)
+        self.processes = []   # list of (name, tag, log_path|None, Popen)
         self._stopped = False
         self._afl_bin = _afl_fuzz_bin()
+        self._save_afl_logs = os.environ.get("INSIGHTS_AFL_SAVE_LOGS", "0") == "1"
 
     # ------------------------------------------------------------------
     def launch(self) -> None:
@@ -268,12 +348,20 @@ class FuzzCampaign:
                     "-t", str(self.timeout_ms),
                     "--", str(binary), "@@",
                 ]
-                log_fh = open(log_path, "wb")
-                proc = subprocess.Popen(
-                    cmd, env=_afl_env(),
-                    stdout=log_fh, stderr=subprocess.STDOUT,
-                )
-                log_fh.close()
+                if self._save_afl_logs:
+                    log_fh = open(log_path, "wb")
+                    proc = subprocess.Popen(
+                        cmd, env=_afl_env(),
+                        stdout=log_fh, stderr=subprocess.STDOUT,
+                    )
+                    log_fh.close()
+                else:
+                    log_path = None
+                    proc = subprocess.Popen(
+                        cmd, env=_afl_env(),
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
                 self.processes.append((name, tag, log_path, proc))
                 print(f"  [+] {name} {tag} on CPU {cpu} (pid={proc.pid})")
                 if i == 0 and cores_per > 1:
@@ -284,30 +372,75 @@ class FuzzCampaign:
         print(f"[campaign] {len(alive)}/{len(self.processes)} fuzzers alive")
         for name, tag, log_path, proc in dead:
             rc = proc.returncode
-            tail = _tail_log(log_path, 8)
-            print(f"  [-] DEAD {name} {tag} (exit={rc}) log={log_path}")
-            for line in tail:
-                print(f"        {line}")
+            if log_path:
+                tail = _tail_log(log_path, 8)
+                print(f"  [-] DEAD {name} {tag} (exit={rc}) log={log_path}")
+                for line in tail:
+                    print(f"        {line}")
+            else:
+                print(f"  [-] DEAD {name} {tag} (exit={rc}) log=disabled")
 
     # ------------------------------------------------------------------
     def wait(self, duration_hours: float = None) -> None:
+        # Duration is measured against AFL's own runtime (max run_time across
+        # instances from fuzzer_stats), NOT host wall-clock. This way startup,
+        # rebuilds, suspended processes, etc. don't eat into fuzzing budget.
         start = time.time()
-        deadline = start + duration_hours * 3600 if duration_hours else None
-        beat = start + 30 * 60
+        budget = duration_hours * 3600 if duration_hours else None
+        beat = start + 15 * 60
         try:
             while True:
                 alive = [t for t in self.processes if t[3].poll() is None]
                 if not alive:
                     print("[campaign] all fuzzers exited")
                     return
-                if deadline and time.time() >= deadline:
+                s = _aggregate_afl_stats(self.harnesses)
+                afl_rt = int(s["run_time_max"])
+                if budget and afl_rt >= budget:
+                    print(f"[campaign] AFL runtime {afl_rt}s reached budget {int(budget)}s")
                     return
                 if time.time() >= beat:
                     el = int(time.time() - start)
+                    storage_bytes = 0
+                    storage_roots = set()
+                    for _info in self.harnesses.values():
+                        _out = _info.get("afl_output")
+                        if _out:
+                            storage_roots.add(str(_out))
+                    for pat in _TMP_STALE_GLOBS:
+                        for p in glob.glob(pat):
+                            storage_roots.add(p)
+                    for p in storage_roots:
+                        if os.path.isfile(p):
+                            try:
+                                storage_bytes += os.path.getsize(p)
+                            except OSError:
+                                pass
+                            continue
+                        for dirpath, _dirs, files in os.walk(p):
+                            for f in files:
+                                try:
+                                    storage_bytes += os.path.getsize(os.path.join(dirpath, f))
+                                except OSError:
+                                    pass
+                    if storage_bytes >= 1 << 30:
+                        storage = f"{storage_bytes / (1 << 30):.2f}GiB"
+                    elif storage_bytes >= 1 << 20:
+                        storage = f"{storage_bytes / (1 << 20):.1f}MiB"
+                    else:
+                        storage = f"{storage_bytes / 1024:.0f}KiB"
                     print(f"[heartbeat] elapsed={el//3600:02d}h"
-                          f"{(el%3600)//60:02d}m alive={len(alive)}/"
-                          f"{len(self.processes)}", flush=True)
-                    beat += 30 * 60
+                          f"{(el%3600)//60:02d}m"
+                          f" afl_rt={afl_rt//3600:02d}h{(afl_rt%3600)//60:02d}m"
+                          f" alive={len(alive)}/{len(self.processes)}"
+                          f" execs={int(s['execs_done']):,}"
+                          f" eps={int(s['execs_per_sec']):,}"
+                          f" paths={int(s['paths_total'])}"
+                          f" crashes={int(s['unique_crashes'])}"
+                          f" hangs={int(s['unique_hangs'])}"
+                          f" storage={storage}",
+                          flush=True)
+                    beat += 15 * 60
                 time.sleep(10)
         except KeyboardInterrupt:
             pass

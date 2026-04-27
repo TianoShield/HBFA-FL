@@ -35,12 +35,9 @@ BUILD_ROOT      = WORKSPACE / "Build" / HBFA_PKG_NAME
 BUILD_AFL_DIR   = BUILD_ROOT / "DEBUG_AFL" / "X64"
 BUILD_GCC5_DIR  = BUILD_ROOT / "DEBUG_GCC5" / "X64"
 
-# AFL output dir prefix. Override with AFL_OUTPUT_PREFIX env var.
-# Defaults to /tmp so AFL runs entirely on tmpfs (fast). Stale dirs are
-# wiped at the start of each campaign by cleanup_tmp(); pass --keep-tmp
-# to disable. Set AFL_OUTPUT_PREFIX to relocate (e.g. WORKSPACE/Build/
-# afl_runs/afl_out_) for very long campaigns that would exhaust tmpfs.
-AFL_OUTPUT_PREFIX = os.environ.get("AFL_OUTPUT_PREFIX", "/tmp/afl_out_")
+# AFL output dir prefix.
+# Always use /tmp for AFL output directories.
+AFL_OUTPUT_PREFIX = "/tmp/afl_out_"
 
 # Reports
 DATA_DIR        = INSIGHTS_DIR / "data"
