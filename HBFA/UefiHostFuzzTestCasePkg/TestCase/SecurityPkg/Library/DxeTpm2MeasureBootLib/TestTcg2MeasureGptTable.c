@@ -86,16 +86,28 @@ RunTestHarness(
   // try to separate EFI lib, use stdlib function.
   // no asm code.
 
-  GptHandle =NULL;
-  Status = gBS->InstallMultipleProtocolInterfaces (
+  GptHandle = NULL;
+  //
+  // Host-fuzz workaround: gBS->InstallMultipleProtocolInterfaces is a variadic
+  // EFIAPI (ms_abi) function pointer that crashes in CoreInstallMultipleProtocol-
+  // Interfaces' VA_ARG under the AFL toolchain. The HBFA build strips most of
+  // the GCC5 X64 CC flags, leaving caller/callee with an inconsistent ms_abi /
+  // sysv va_list layout. Replace with two non-variadic InstallProtocolInterface
+  // calls, which sidesteps the problem entirely and is semantically equivalent.
+  //
+  Status = gBS->InstallProtocolInterface (
                       &GptHandle,
                       &gEfiBlockIoProtocolGuid,
-                      BlockIo,
-                      &gEfiDiskIoProtocolGuid,
-                      DiskIo,
-                      NULL
+                      EFI_NATIVE_INTERFACE,
+                      BlockIo
                       );
-					  
+  Status = gBS->InstallProtocolInterface (
+                      &GptHandle,
+                      &gEfiDiskIoProtocolGuid,
+                      EFI_NATIVE_INTERFACE,
+                      DiskIo
+                      );
+
   Status = gBS->LocateProtocol (&gEfiTcg2ProtocolGuid, NULL, (VOID **) &Tcg2Protocol);
   Status = gBS->LocateProtocol (&gEfiCcMeasurementProtocolGuid, NULL, (VOID **) &CcProtocol);
 

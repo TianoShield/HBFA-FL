@@ -63,12 +63,18 @@ RunTestHarness(
         VblkDev->BlockIo.ReadBlocks(&VblkDev->BlockIo, 0, 0, TestBufferSize, TestBuffer);
         VblkDev->BlockIo.FlushBlocks(&VblkDev->BlockIo);
       }
+      //
+      // Only tear down the ring if VirtioBlkInit set it up.
+      // VirtioBlkInit() initializes VblkDev->Ring; calling
+      // VirtioRingUninit on an uninitialized Ring (or NULL VirtIo)
+      // dereferences NULL pointers.
+      //
+      VirtioRingUninit (VblkDev->VirtIo, &VblkDev->Ring);
     }
   }
-  
-  VirtioRingUninit (VblkDev->VirtIo, &VblkDev->Ring);
+
   FreePool (ConfigRegion);
   FreePool (VirtioDev);
-  FreePool (VblkDev); 
+  FreePool (VblkDev);
   FreePool (PciIo);
 }

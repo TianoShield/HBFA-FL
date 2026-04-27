@@ -97,14 +97,22 @@ RunTestHarness(
   // try to separate EFI lib, use stdlib function.
   // no asm code.
   
-  GptHandle =NULL;
-  Status = gBS->InstallMultipleProtocolInterfaces (
+  GptHandle = NULL;
+  //
+  // Host-fuzz workaround: avoid variadic InstallMultipleProtocolInterfaces.
+  // See TestTcg2MeasureGptTable.c for full rationale.
+  //
+  Status = gBS->InstallProtocolInterface (
                       &GptHandle,
                       &gEfiBlockIoProtocolGuid,
-                      BlockIo,
+                      EFI_NATIVE_INTERFACE,
+                      BlockIo
+                      );
+  Status = gBS->InstallProtocolInterface (
+                      &GptHandle,
                       &gEfiDiskIoProtocolGuid,
-                      DiskIo,
-                      NULL
+                      EFI_NATIVE_INTERFACE,
+                      DiskIo
                       );
   Status = gBS->LocateProtocol (&gEfiTcg2ProtocolGuid, NULL, (VOID **) &Tcg2Protocol);
   Status = gBS->LocateProtocol (&gEfiCcMeasurementProtocolGuid, NULL, (VOID **) &CcProtocol);

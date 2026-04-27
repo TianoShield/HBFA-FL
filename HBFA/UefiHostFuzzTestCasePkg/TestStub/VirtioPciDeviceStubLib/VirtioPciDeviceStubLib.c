@@ -288,9 +288,29 @@ InitVirtioPciDev (
   CopyMem (&Device->VirtioDevice, &mDeviceProtocolTemplate, sizeof (VIRTIO_DEVICE_PROTOCOL));
 
   PciCfg = (PCI_CFG_SPACE *) ConfigRegion;
- 
-  //This test expects this binary file to exist in the current execution folder
-  FILE *f = fopen("VirtioBlkFuzzSeed0.9.5.bin", "rb");
+
+  //
+  // The stub primes ConfigRegion from a fixed binary blob.
+  // Try (in order): $HBFA_VIRTIO_BLK_SEED, the current working
+  // directory, and the HBFA Seed/Blk asset directory. Falling back
+  // to multiple locations avoids spurious failures when the harness
+  // is launched from outside the source tree (e.g. by AFL with a
+  // staged cwd).
+  //
+  FILE *f = NULL;
+  const char *envSeed = getenv("HBFA_VIRTIO_BLK_SEED");
+  if (envSeed != NULL && envSeed[0] != '\0') {
+    f = fopen(envSeed, "rb");
+  }
+  if (f == NULL) {
+    f = fopen("VirtioBlkFuzzSeed0.9.5.bin", "rb");
+  }
+  if (f == NULL) {
+    f = fopen("HBFA/UefiHostFuzzTestCasePkg/Seed/Blk/VirtioBlkFuzzSeed0.9.5.bin", "rb");
+  }
+  if (f == NULL) {
+    f = fopen("../HBFA/UefiHostFuzzTestCasePkg/Seed/Blk/VirtioBlkFuzzSeed0.9.5.bin", "rb");
+  }
   if (f==NULL) {
     fputs ("File error",stderr);
     goto FreeDevice;

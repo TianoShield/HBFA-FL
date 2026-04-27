@@ -319,6 +319,32 @@ do_status() {
   echo
   echo "── afl-whatsup ──"
   afl-whatsup -s "$OUTPUT_DIR" 2>/dev/null || afl-whatsup "$OUTPUT_DIR" 2>/dev/null || true
+
+  echo
+  echo "── runtime (from fuzzer_stats) ──"
+  local any=0 rt_max=0
+  while IFS= read -r -d '' stats; do
+    any=1
+    local inst rt start_ts last_ts h m
+    inst="$(basename "$(dirname "$stats")")"
+    start_ts="$(awk -F: '$1 ~ /^[[:space:]]*start_time[[:space:]]*$/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$stats")"
+    last_ts="$(awk -F: '$1 ~ /^[[:space:]]*last_update[[:space:]]*$/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$stats")"
+    if [[ "$start_ts" =~ ^[0-9]+$ && "$last_ts" =~ ^[0-9]+$ && "$last_ts" -ge "$start_ts" ]]; then
+      rt=$((last_ts - start_ts))
+    else
+      rt=0
+    fi
+    (( rt > rt_max )) && rt_max=$rt
+    h=$((rt / 3600))
+    m=$(((rt % 3600) / 60))
+    printf '  %-8s  %02dh%02dm (%ss)\n' "$inst" "$h" "$m" "$rt"
+  done < <(find "$OUTPUT_DIR" -mindepth 2 -maxdepth 2 -type f -name fuzzer_stats -print0 2>/dev/null)
+
+  if (( any == 0 )); then
+    echo "  (no fuzzer_stats found yet)"
+  else
+    printf '  %-8s  %02dh%02dm (%ss)\n' "max" "$((rt_max / 3600))" "$(((rt_max % 3600) / 60))" "$rt_max"
+  fi
 }
 
 do_coverage() {

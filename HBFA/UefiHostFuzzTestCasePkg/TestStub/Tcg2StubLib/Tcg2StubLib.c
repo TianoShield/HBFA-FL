@@ -305,13 +305,25 @@ Tcg2StubInitlize(
   EFI_HANDLE        Handle;
 
   Handle = NULL;
-  Status = gBS->InstallMultipleProtocolInterfaces (
+  //
+  // Host-fuzz workaround: avoid variadic InstallMultipleProtocolInterfaces,
+  // which crashes under the AFL toolchain due to ms_abi/sysv va_list mismatch
+  // produced by HBFA's CC_FLAGS handling. Two non-variadic calls are equivalent.
+  //
+  Status = gBS->InstallProtocolInterface (
                   &Handle,
                   &gEfiTcg2ProtocolGuid,
-                  &mTcg2Protocol,
+                  EFI_NATIVE_INTERFACE,
+                  &mTcg2Protocol
+                  );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+  Status = gBS->InstallProtocolInterface (
+                  &Handle,
                   &gEfiCcMeasurementProtocolGuid,
-                  &mCcProtocol,
-                  NULL
+                  EFI_NATIVE_INTERFACE,
+                  &mCcProtocol
                   );
   return Status;
 
